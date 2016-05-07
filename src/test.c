@@ -1,3 +1,5 @@
+#ifdef ABD_TEST
+
 #include "data.h"
 #include "net.h"
 
@@ -141,7 +143,7 @@ static uint64_t qpf() {
 #endif
 }
 
-static bool test_net_init(uint8_t* pmemory) {
+static bool test_server_can_start_and_net_can_join(uint8_t* pmemory) {
     TestMemory* mem = (TestMemory*)pmemory;
 
 #ifdef _WIN32
@@ -165,7 +167,10 @@ int main() {
     RUN_TEST(test_sections_work);
     RUN_TEST(test_inspect_works);
 
-    RUN_TEST(test_net_init);
+    RUN_TEST(test_server_can_start_and_net_can_join);
 
     system("pause");
 }
+
+#endif
+

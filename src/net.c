@@ -11,8 +11,8 @@ static void abd_clean_up_winsock() {
 }
 #endif
 
-bool abd_start_server(AbdServer* out_server, AbdNetConfig* in_config, uint16_t port) {
 #ifdef _WIN32
+static void abd_init_sockets() {
     if (!abd_winsock_initialized) {
         if (WSAStartup(MAKEWORD(2,2),&abd_wsadata) != 0)
         {
@@ -22,7 +22,14 @@ bool abd_start_server(AbdServer* out_server, AbdNetConfig* in_config, uint16_t p
         abd_winsock_initialized = true;
         atexit(abd_clean_up_winsock);
     }
+}
+#else
+#define abd_init_sockets() do{}while(0)
 #endif
+
+bool abd_start_server(AbdServer* out_server, AbdNetConfig* in_config, uint16_t port) {
+    abd_init_sockets();
+
     memset(out_server, 0, sizeof(AbdServer));
     out_server->conf = *in_config;
 
@@ -40,5 +47,32 @@ bool abd_start_server(AbdServer* out_server, AbdNetConfig* in_config, uint16_t p
         return false;
     }
 
+    return true;
+}
+
+bool abd_server_tick(AbdServer* server) {
+
+    return true;
+}
+
+bool abd_connect_to_server(AbdClient* out_client, AbdNetConfig* in_config, const char* ip_address, uint16_t port) {
+    abd_init_sockets();
+
+    memset(out_client, 0, sizeof(AbdClient));
+    out_client->conf = *in_config;
+
+    out_client->socket = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
+    if (out_client->socket == INVALID_SOCKET) {
+        return false;
+    }
+
+    out_client->server_address.sin_family = AF_INET;
+    out_client->server_address.sin_addr.s_addr = inet_addr(ip_address);
+    out_client->server_address.sin_port = htons(port);
+
+    return true;
+}
+
+bool abd_client_tick(AbdClient* client) {
     return true;
 }
