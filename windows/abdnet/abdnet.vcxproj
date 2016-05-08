@@ -34,6 +34,7 @@
   <ItemGroup>
     <ClInclude Include="..\..\src\data.h" />
     <ClInclude Include="..\..\src\net.h" />
+    <ClInclude Include="..\..\src\rpcdsl.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{84D33550-7094-4F07-A1FD-A8750A50397C}</ProjectGuid>

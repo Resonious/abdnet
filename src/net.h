@@ -3,6 +3,7 @@
 
 #include "data.h"
 #include <stdlib.h>
+#include <stdarg.h>
 
 #ifdef _WIN32
 #define _WINSOCK_DEPRECATED_NO_WARNINGS
@@ -41,17 +42,27 @@ static const char* abd_error_message[] = {
     "Tried to connect to a server that we are already connected to"
 };
 
-// --- Core Structures ---
+// --- Core Types ---
+
+typedef struct RpcTarget {
+    AbdBuffer* buf;
+    uint8_t rw;
+} RpcTarget;
+
+typedef void(*RpcFunc)(RpcTarget, ...);
 
 typedef struct AbdNetConfig {
     uint64_t performace_frequency;
     uint64_t(*get_performance_counter)();
+
+    RpcFunc* rpc_list;
 } AbdNetConfig;
 
 typedef struct AbdJoinedClient {
     // index into AbdServer#clients
     int16_t id;
     struct sockaddr_in address;
+    uint64_t last_received_at;
 } AbdJoinedClient;
 
 typedef struct AbdServer {
@@ -73,7 +84,9 @@ typedef struct AbdClient {
 } AbdClient;
 
 enum AbdOpcode {
+    // First opcode sent to server by client should be this.
     AOP_HANDSHAKE,
+    // An untimed RPC is executed as soon as it's received.
     AOP_UNTIMED_RPC
 };
 

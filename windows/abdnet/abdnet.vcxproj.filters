@@ -8,5 +8,6 @@
   <ItemGroup>
     <ClInclude Include="..\..\src\data.h" />
     <ClInclude Include="..\..\src\net.h" />
+    <ClInclude Include="..\..\src\rpcdsl.h" />
   </ItemGroup>
 </Project>

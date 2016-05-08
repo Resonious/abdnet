@@ -85,7 +85,7 @@ static const char* abd_type_str(uint8_t type) {
     case ABDT_U16:     return "Uint16";
     case ABDT_U32:     return "Uint32";
     case ABDT_U64:     return "Uint64";
-    case ABDT_COLOR:   return "RGB Color";
+    case ABDT_COLOR:   return "RGBA Color";
     case ABDT_BOOL:    return "Boolean";
     case ABDT_STRING:  return "String";
     case ABDT_SECTION: return "(Section)";
@@ -93,6 +93,19 @@ static const char* abd_type_str(uint8_t type) {
         return "ERROR";
     }
 }
+
+#define ABDT_FLOAT_t   float
+#define ABDT_VEC2_t    struct abdvec2 { float x, y; }
+#define ABDT_VEC4_t    struct abdvec4 { float x, y, z, w; }
+#define ABDT_S16_t     int16_t
+#define ABDT_S32_t     int32_t
+#define ABDT_S64_t     int64_t
+#define ABDT_U16_t     uint16_t
+#define ABDT_U32_t     uint32_t
+#define ABDT_U64_t     uint64_t
+#define ABDT_COLOR_t   struct abdcolor { uint8_t r, g, b, a }
+#define ABDT_BOOL_t    bool
+#define ABDT_STRING_t  char*
 
 typedef void(*DataFunc)(AbdBuffer*, void*);
 typedef void(*DataInspectFunc)(AbdBuffer*, uint8_t, FILE* f);

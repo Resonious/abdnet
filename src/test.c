@@ -2,6 +2,7 @@
 
 #include "data.h"
 #include "net.h"
+#include "rpcdsl.h"
 
 int wsa_last_error = 0;
 int last_errno = 0;
