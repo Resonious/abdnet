@@ -19,7 +19,7 @@
 #define A RPC_ARG
 #endif
 
-#define SET_RPC(rpc_list, rpc_func, index) (rpc_list)[index] = rpc_func; rpcid_##rpc_func = index;
+#define SET_RPC(rpc_list, rpc_func, index) { int _i = index; (rpc_list)[_i] = rpc_func; rpcid_##rpc_func = _i; }
 
 #define DEF_RPC(funcname, argdefs)\
     int rpcid_##funcname;\
@@ -40,23 +40,10 @@
 
 #define END_RPC }}
 
-DEF_RPC(test_rpc, A(ABDT_S32, test_num); A(ABDT_FLOAT, other)) {
-    printf("test_num: %i ||| other: %f", test_num, other);
-} END_RPC
-
-static void fill_rpc_list(AbdNetConfig* config) {
-    config->rpc_list = malloc(1 * sizeof(RpcFunc));
-    SET_RPC(config->rpc_list, test_rpc, 0);
-}
-
+// TODO define these.
 #define ON_CLIENT(n) (RpcTarget){NULL, 0}
 #define ON_ALL_CLIENTS (RpcTarget){NULL, 0}
 #define LOCALLY (RpcTarget){NULL, 0}
 #define EVERYWHERE (RpcTarget){NULL, 0}
-
-static void test_run_rpc() {
-    test_rpc(ON_CLIENT(0), 100, 5.05f);
-    test_rpc(EVERYWHERE, 100, 5.05f);
-}
 
 #endif

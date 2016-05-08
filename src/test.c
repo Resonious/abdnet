@@ -20,6 +20,8 @@ int last_errno = 0;
 typedef struct { float x, y; } vec2;
 typedef struct { float x, y, z, w; } vec4;
 
+// ================================ BEGIN DATA TESTS ================================
+
 static bool test_can_write_and_read_an_unannotated_float(uint8_t* memory) {
     float to_write = 1.205000043f;
 
@@ -134,6 +136,9 @@ static bool test_inspect_works(uint8_t* memory) {
     return true;
 }
 
+// ================================== END DATA TESTS ===================================
+// ================================ BEGIN NETWORK TESTS ================================
+
 typedef struct TestMemory {
     AbdNetConfig config;
     AbdServer server;
@@ -150,6 +155,17 @@ static uint64_t qpf() {
 #endif
 }
 
+DEF_RPC(test_rpc, A(ABDT_S32, test_num); A(ABDT_FLOAT, other)) {
+    printf("test_num: %i ||| other: %f", test_num, other);
+} END_RPC
+
+static RpcFunc rpc_list[128] = {NULL};
+static void fill_rpc_list(AbdNetConfig* config) {
+    config->rpc_list = rpc_list;
+    int i = 0;
+    SET_RPC(config->rpc_list, test_rpc, i++);
+}
+
 static bool test_server_can_start(uint8_t* pmemory) {
     TestMemory* mem = (TestMemory*)pmemory;
 
@@ -157,6 +173,7 @@ static bool test_server_can_start(uint8_t* pmemory) {
     QueryPerformanceFrequency(&mem->config.performace_frequency);
 #endif
     mem->config.get_performance_counter = qpf;
+    fill_rpc_list(&mem->config);
 
     EXPECT(abd_start_server(&mem->server, &mem->config, 7778));
 
@@ -166,6 +183,7 @@ static bool test_server_can_start(uint8_t* pmemory) {
 static bool test_client_can_join(uint8_t* pmemory) {
     TestMemory* mem = (TestMemory*)pmemory;
 
+    NET_EXPECT(mem->server.clients[0].id == -1);
     // This should send out the handshake
     NET_EXPECT(abd_connect_to_server(&mem->client, &mem->config, "127.0.0.1", 7778));
     // Server receives handshake
@@ -179,12 +197,27 @@ static bool test_client_can_join(uint8_t* pmemory) {
     return true;
 }
 
+/* TODO
+static void test_run_rpc() {
+    test_rpc(ON_CLIENT(0), 100, 5.05f);
+    test_rpc(EVERYWHERE, 100, 5.05f);
+}
+*/
+static bool test_server_can_call_rpc_on_client(uint8_t* pmemory) {
+    TestMemory* mem = (TestMemory*)pmemory;
+
+    // TODO TODO TODO
+    return false;
+}
+
 static bool close_sockets(uint8_t* pmemory) {
     TestMemory* mem = (TestMemory*)pmemory;
     closesocket(mem->server.socket);
     closesocket(mem->client.socket);
     return true;
 }
+
+// ================================= END NETWORK TESTS ==================================
 
 #define RUN_TEST(name) if (name(memory)) printf("===== passed! ====== "#name"\n"); else printf("===== FAILED. ====== "#name"\n");
 

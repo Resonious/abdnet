@@ -17,6 +17,10 @@
 #define ABD_BUFFER_CAPACITY 2048
 #endif
 
+#ifndef ABD_USER_DATA_TYPE
+#define ABD_USER_DATA_TYPE void*
+#endif
+
 // --- Errors and their accompanying messages ---
 typedef enum AbdNetError {
     ABDE_NO_ERROR,
@@ -70,6 +74,7 @@ typedef struct AbdServer {
     AbdNetConfig conf;
     SOCKET socket;
     struct sockaddr_in address;
+    ABD_USER_DATA_TYPE ud;
     AbdJoinedClient clients[ABD_NET_MAX_CLIENTS];
     uint8_t recv_buffer[ABD_BUFFER_CAPACITY];
 } AbdServer;
@@ -79,6 +84,7 @@ typedef struct AbdClient {
     AbdNetConfig conf;
     SOCKET socket;
     struct sockaddr_in server_address;
+    ABD_USER_DATA_TYPE ud;
     int16_t id;
     uint8_t recv_buffer[ABD_BUFFER_CAPACITY];
 } AbdClient;
