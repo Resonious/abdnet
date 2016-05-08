@@ -61,8 +61,10 @@ enum AbdType {
     ABDT_FLOAT,
     ABDT_VEC2,
     ABDT_VEC4,
+    ABDT_S16,
     ABDT_S32,
     ABDT_S64,
+    ABDT_U16,
     ABDT_U32,
     ABDT_U64,
     ABDT_COLOR,
@@ -77,8 +79,10 @@ static const char* abd_type_str(uint8_t type) {
     case ABDT_FLOAT:   return "Float";
     case ABDT_VEC2:    return "Vec2";
     case ABDT_VEC4:    return "Vec4";
+    case ABDT_S16:     return "Sint16";
     case ABDT_S32:     return "Sint32";
     case ABDT_S64:     return "Sint64";
+    case ABDT_U16:     return "Uint16";
     case ABDT_U32:     return "Uint32";
     case ABDT_U64:     return "Uint64";
     case ABDT_COLOR:   return "RGB Color";

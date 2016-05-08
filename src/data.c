@@ -12,6 +12,16 @@ static void read_1_byte(AbdBuffer* buf, void* dest) {
     buf->pos += 1;
 }
 
+static void write_2_bytes(AbdBuffer* buf, void* data) {
+    memcpy(buf->bytes + buf->pos, data, 2);
+    buf->pos += 2;
+}
+
+static void read_2_bytes(AbdBuffer* buf, void* dest) {
+    memcpy(dest, buf->bytes + buf->pos, 2);
+    buf->pos += 2;
+}
+
 static void write_4_bytes(AbdBuffer* buf, void* data) {
     memcpy(buf->bytes + buf->pos, data, 4);
     buf->pos += 4;
@@ -142,8 +152,10 @@ DataFunc abd_data_write[] = {
     write_4_bytes,   // ABDT_FLOAT
     write_8_bytes,   // ABDT_VEC2
     write_4_floats,  // ABDT_VEC4
+    write_2_bytes,   // ABDT_S16
     write_4_bytes,   // ABDT_S32
     write_8_bytes,   // ABDT_S64
+    write_2_bytes,   // ABDT_U16
     write_4_bytes,   // ABDT_U32
     write_8_bytes,   // ABDT_U64
     write_4_bytes,   // ABDT_COLOR
@@ -155,8 +167,10 @@ DataFunc abd_data_read[] = {
     read_4_bytes,   // ABDT_FLOAT
     read_8_bytes,   // ABDT_VEC2
     read_4_floats,  // ABDT_VEC4
+    read_2_bytes,   // ABDT_S16
     read_4_bytes,   // ABDT_S32
     read_8_bytes,   // ABDT_S64
+    read_2_bytes,   // ABDT_U16
     read_4_bytes,   // ABDT_U32
     read_8_bytes,   // ABDT_U64
     read_4_bytes,   // ABDT_COLOR
@@ -168,8 +182,10 @@ DataInspectFunc abd_data_inspect[] = {
     inspect_float,        // ABDT_FLOAT
     inspect_vec2,         // ABDT_VEC2
     inspect_vec4,         // ABDT_VEC4
+    inspect_integer_type, // ABDT_S16
     inspect_integer_type, // ABDT_S32
     inspect_integer_type, // ABDT_S64
+    inspect_unsigned_integer_type, // ABDT_U16
     inspect_unsigned_integer_type, // ABDT_U32
     inspect_unsigned_integer_type, // ABDT_U64
     inspect_color,        // ABDT_COLOR
