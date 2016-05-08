@@ -170,7 +170,7 @@ bool abd_connect_to_server(AbdClient* out_client, AbdNetConfig* in_config, const
 
 bool abd_client_tick(AbdClient* client) {
     struct sockaddr_in other_address;
-    int other_address_len;
+    int other_address_len = sizeof(other_address);
 
     int recv_size = recvfrom(
         client->socket,
@@ -198,7 +198,6 @@ bool abd_client_tick(AbdClient* client) {
         memcpy(&id_or_error, client->recv_buffer + 1, 2);
 
         switch (id_or_error) {
-            // TODO update some status thing when these errors occur
         case ABD_HANDSHAKE_NO_ROOM:
             printf("Handshake error: SERVER FULL\n");
             client->error = ABDE_SERVER_WAS_FULL;
@@ -210,7 +209,6 @@ bool abd_client_tick(AbdClient* client) {
 
         default:
             client->id = id_or_error;
-            printf("client connected! id: %i\n", client->id);
         }
     } break;
 

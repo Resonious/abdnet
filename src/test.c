@@ -8,10 +8,10 @@ int last_errno = 0;
 
 #define DATATEST_NEW_BUFFER() { .bytes = memory, .capacity = 2048, .pos = 0 }
 #ifdef _WIN32
-#define EXPECT_OR(cond, onfail) if (!(cond)) { printf("\"%s\" returned false\n", #cond); onfail; DebugBreak(); return false; }
+#define EXPECT_OR(cond, onfail) if (!(cond)) { printf("\""#cond"\" returned false\n"); onfail; DebugBreak(); return false; }
 
-#define EXPECT(cond) EXPECT_OR(cond, {})
-#define NET_EXPECT(cond) EXPECT_OR(cond, wsa_last_error = WSAGetLastError())
+#define EXPECT(cond)     EXPECT_OR(cond, {})
+#define NET_EXPECT(cond) EXPECT_OR(cond, wsa_last_error = WSAGetLastError(); printf("WSAGetLastError() -> %i\n", wsa_last_error))
 #endif
 
 #define str_eq(s1, s2) (strcmp((s1), (s2)) == 0)
@@ -167,8 +167,10 @@ static bool test_client_can_join(uint8_t* pmemory) {
 
     // This should send out the handshake
     NET_EXPECT(abd_connect_to_server(&mem->client, &mem->config, "127.0.0.1", 7778));
-    // This should receive said handshake
+    // Server receives handshake
     NET_EXPECT(abd_server_tick(&mem->server));
+    // Client receives ID after handshake
+    NET_EXPECT(abd_client_tick(&mem->client));
 
     NET_EXPECT(mem->client.id == 0);
     NET_EXPECT(mem->server.clients[0].id == 0);
@@ -183,7 +185,7 @@ static bool close_sockets(uint8_t* pmemory) {
     return true;
 }
 
-#define RUN_TEST(name) if (name(memory)) printf(#name" passed!\n"); else printf(#name" FAILED.\n");
+#define RUN_TEST(name) if (name(memory)) printf("===== passed! ====== "#name"\n"); else printf("===== FAILED. ====== "#name"\n");
 
 int main() {
     uint8_t* memory = malloc(1024 * 10);

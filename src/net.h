@@ -73,7 +73,8 @@ typedef struct AbdClient {
 } AbdClient;
 
 enum AbdOpcode {
-    AOP_HANDSHAKE
+    AOP_HANDSHAKE,
+    AOP_UNTIMED_RPC
 };
 
 // --- handshake errors received by client ---
