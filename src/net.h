@@ -8,6 +8,17 @@
 #ifdef _WIN32
 #define _WINSOCK_DEPRECATED_NO_WARNINGS
 #include <WinSock2.h>
+#else
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <netinet/tcp.h>
+#include <sys/types.h>
+#include <arpa/inet.h>
+#define WSAGetLastError() (-1)
+#define SOCKET_ERROR (-1)
+#define INVALID_SOCKET (-1)
+#define SOCKET int
+#define closesocket close
 #endif
 
 #ifndef ABD_NET_MAX_CLIENTS

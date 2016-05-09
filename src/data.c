@@ -74,7 +74,7 @@ static void read_4_floats(AbdBuffer* buf, void* data) {
     buf->pos += 16;
 }
 
-static void abd_write_string(AbdBuffer* buf, void* str) {
+void abd_write_string(AbdBuffer* buf, void* str) {
     char* string = (char*)str;
     size_t str_size = strlen(string);
     if (str_size >= 256) {
