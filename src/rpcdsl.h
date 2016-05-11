@@ -5,11 +5,11 @@
 
 #define RPC_ARG(argtype, argname)\
     argtype##_t argname;\
-    if (_rpctarget.rw == ABD_WRITE) {\
+    if (_rpcinfo.rw == ABD_WRITE) {\
         argname = va_arg(_va, argtype##_t);\
     }\
-    if (_rpctarget.buf){\
-        abd_transfer(_rpctarget.rw, argtype, _rpctarget.buf, &argname, NULL);\
+    if (_rpcinfo.target){\
+        abd_transfer(_rpcinfo.rw, argtype, &_rpcinfo.target->rpc_buf, &argname, NULL);\
     }
 
 #ifndef RA
@@ -21,29 +21,33 @@
 
 #define SET_RPC(rpc_list, rpc_func, index) { int _i = index; (rpc_list)[_i] = rpc_func; rpcid_##rpc_func = _i; }
 
-#define DEF_RPC(funcname, argdefs)\
-    int rpcid_##funcname;\
-\
-    void funcname(RpcTarget _rpctarget, ...) {\
-        va_list _va = NULL;\
-\
-        if (_rpctarget.buf) {\
-            int rpc_id = rpcid_##funcname;\
-            abd_transfer(_rpctarget.rw, ABDT_U16, _rpctarget.buf, &rpc_id, NULL);\
-            abd_assert(rpc_id == rpcid_##funcname);\
-        }\
-\
-        if (_rpctarget.rw == ABD_WRITE) va_start(_va, _rpctarget);\
-        argdefs;\
-        if (_rpctarget.rw == ABD_WRITE) va_end(_va);\
-        if (_rpctarget.buf == NULL || _rpctarget.rw == ABD_READ) {
+#define DEF_RPC(funcname, argdefs)                                                \
+    int rpcid_##funcname;                                                         \
+                                                                                  \
+    void funcname(RpcInfo _rpcinfo, ...) {                                        \
+        va_list _va = NULL;                                                       \
+                                                                                  \
+        if (_rpcinfo.target && _rpcinfo.rw == ABD_WRITE) {                        \
+            int rpc_id = rpcid_##funcname;                                        \
+            abd_transfer(_rpcinfo.rw, ABDT_U16, &_rpcinfo.target->rpc_buf, &rpc_id, NULL);  \
+            _rpcinfo.target->rpc_count += 1;                                      \
+        }                                                                         \
+                                                                                  \
+        if (_rpcinfo.rw == ABD_WRITE) va_start(_va, _rpcinfo);                    \
+        argdefs;                                                                  \
+        if (_rpcinfo.rw == ABD_WRITE) va_end(_va);                                \
+        AbdConnection* connection = _rpcinfo.con;                                 \
+        if (_rpcinfo.flags & RPCF_EXECUTE_LOCALLY) {
 
 #define END_RPC }}
 
-// TODO define these.
-#define ON_CLIENT(n) (RpcTarget){NULL, 0}
-#define ON_ALL_CLIENTS (RpcTarget){NULL, 0}
-#define LOCALLY (RpcTarget){NULL, 0}
-#define EVERYWHERE (RpcTarget){NULL, 0}
+#define DEFINE_RPC DEF_RPC
+
+#define CALL_ON_CLIENT_ID(server, client_id) (RpcInfo){ &(server)->clients[(client_id)].outgoing_rpc, ABD_WRITE, 0, AS_CONNECTION(server), NULL }
+#define CALL_ON_CLIENT(joined_client)        (RpcInfo){ &(joined_client)->outgoing_rpc, ABD_WRITE, 0, AS_CONNECTION((joined_client)->server), NULL }
+#define CALL_ON_ALL_CLIENTS(server)          (RpcInfo){ &(server)->outgoing_rpc, ABD_WRITE, 0, AS_CONNECTION(server), NULL }
+#define CALL_EVERYWHERE(server)              (RpcInfo){ &(server)->outgoing_rpc, ABD_WRITE, RPCF_EXECUTE_LOCALLY, AS_CONNECTION(server), NULL }
+#define CALL_LOCALLY(connection)             (RpcInfo){ NULL, ABD_WRITE, RPCF_EXECUTE_LOCALLY, AS_CONNECTION(connection), NULL }
+#define CALL_ON_SERVER(client)               (RpcInfo){ &(client)->outgoing_rpc, ABD_WRITE, 0, AS_CONNECTION(client), NULL }
 
 #endif

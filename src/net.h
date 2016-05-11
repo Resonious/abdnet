@@ -21,11 +21,19 @@
 #define closesocket close
 #endif
 
+#define ABD_NULL_CLIENT_ID (-2)
+#define ABD_SERVER_ID (-1)
+
 #ifndef ABD_NET_MAX_CLIENTS
 #define ABD_NET_MAX_CLIENTS 10
 #endif
-#ifndef ABD_BUFFER_CAPACITY
-#define ABD_BUFFER_CAPACITY 2048
+
+#ifndef ABD_RECV_BUFFER_CAPACITY
+#define ABD_RECV_BUFFER_CAPACITY 2048
+#endif
+
+#ifndef RPC_SEND_BUFFER_CAPACITY 2048
+#define RPC_SEND_BUFFER_CAPACITY 2048
 #endif
 
 #ifndef ABD_USER_DATA_TYPE
@@ -59,12 +67,25 @@ static const char* abd_error_message[] = {
 
 // --- Core Types ---
 
+#define RPCF_EXECUTE_LOCALLY (1 << 0)
+
 typedef struct RpcTarget {
-    AbdBuffer* buf;
-    uint8_t rw;
+    uint8_t raw_rpc_buffer[RPC_SEND_BUFFER_CAPACITY];
+    AbdBuffer rpc_buf;
+    uint16_t rpc_count;
 } RpcTarget;
 
-typedef void(*RpcFunc)(RpcTarget, ...);
+struct AbdConnection;
+struct AbdJoinedClient;
+typedef struct RpcInfo {
+    RpcTarget* target;
+    uint8_t rw;
+    uint8_t flags;
+    struct AbdConnection* con;
+    struct AbdJoinedClient* from_client;
+} RpcInfo;
+
+typedef void(*RpcFunc)(RpcInfo, ...);
 
 typedef struct AbdNetConfig {
     uint64_t performace_frequency;
@@ -73,32 +94,64 @@ typedef struct AbdNetConfig {
     RpcFunc* rpc_list;
 } AbdNetConfig;
 
+enum AbdConnectionType {
+    ABD_SERVER,
+    ABD_CLIENT
+};
+
+#define ABD_CONNECTION_FIELDS                      \
+    enum AbdConnectionType type;                   \
+    AbdNetError error;                             \
+    AbdNetConfig conf;                             \
+    SOCKET socket;                                 \
+    uint8_t recv_buffer[ABD_RECV_BUFFER_CAPACITY]; \
+    uint8_t send_buffer[ABD_RECV_BUFFER_CAPACITY]
+
+typedef struct AbdConnection {
+    ABD_CONNECTION_FIELDS;
+} AbdConnection;
+
+struct AbdServer;
 typedef struct AbdJoinedClient {
+    // Incoming from this client
+    RpcTarget outgoing_rpc;
+    // Outgoing to this client
+    RpcTarget incoming_rpc;
     // index into AbdServer#clients
     int16_t id;
     struct sockaddr_in address;
     uint64_t last_received_at;
+    struct AbdServer* server;
 } AbdJoinedClient;
 
 typedef struct AbdServer {
-    AbdNetError error;
-    AbdNetConfig conf;
-    SOCKET socket;
+    ABD_CONNECTION_FIELDS;
     struct sockaddr_in address;
     ABD_USER_DATA_TYPE ud;
     AbdJoinedClient clients[ABD_NET_MAX_CLIENTS];
-    uint8_t recv_buffer[ABD_BUFFER_CAPACITY];
+    // Outgoing to all clients
+    RpcTarget outgoing_rpc;
 } AbdServer;
 
+typedef struct AbdRemoteClient {
+    int16_t id;
+} AbdRemoteClient;
+
 typedef struct AbdClient {
-    AbdNetError error;
-    AbdNetConfig conf;
-    SOCKET socket;
+    ABD_CONNECTION_FIELDS;
     struct sockaddr_in server_address;
     ABD_USER_DATA_TYPE ud;
     int16_t id;
-    uint8_t recv_buffer[ABD_BUFFER_CAPACITY];
+    AbdRemoteClient clients[ABD_NET_MAX_CLIENTS];
+    // Incoming from server
+    RpcTarget incoming_rpc;
+    // Outgoing to server
+    RpcTarget outgoing_rpc;
 } AbdClient;
+
+#define AS_SERVER(connection) ((AbdServer*)(connection))
+#define AS_CLIENT(connection) ((AbdClient*)(connection))
+#define AS_CONNECTION(server_or_client) ((AbdConnection*)(server_or_client))
 
 enum AbdOpcode {
     // First opcode sent to server by client should be this.
@@ -112,19 +165,27 @@ enum AbdOpcode {
 #define ABD_HANDSHAKE_ALREADY_CONNECTED -2
 
 bool abd_addr_eq(struct sockaddr_in* a1, struct sockaddr_in* a2);
+void init_rpc_target(RpcTarget* rpc);
 
+bool abd_start_server(AbdServer* out_server, AbdNetConfig* in_config, uint16_t port);
 /* Receive one packet and send the response.
  * TODO this should re-send packets to clients we haven't heard back from.
  * Returns true if the server is ready for another tick, or false if it failed for some reason.
  */
-bool abd_start_server(AbdServer* out_server, AbdNetConfig* in_config, uint16_t port);
+bool abd_server_tick(AbdServer* server);
+
+bool abd_connect_to_server(AbdClient* out_server, AbdNetConfig* in_config, const char* ip_address, uint16_t port);
 /* Receive one packet and send the response.
  * TODO this should re-send packets if we haven't heard back.
  * Returns true if the client is ready for another tick, or false if it failed for some reason.
  */
-bool abd_server_tick(AbdServer* server);
-
-bool abd_connect_to_server(AbdClient* out_server, AbdNetConfig* in_config, const char* ip_address, uint16_t port);
 bool abd_client_tick(AbdClient* client);
+
+void abd_execute_rpcs(AbdConnection* connection, RpcTarget* rpc);
+#define abd_execute_client_rpcs(client) abd_execute_rpcs(AS_CONNECTION(client), &(client)->incoming_rpc)
+#define abd_execute_server_rpcs(server)                                                   \
+    for (int i = 0; i < ABD_NET_MAX_CLIENTS; i++)                                         \
+        if ((server)->clients[i].id != ABD_NULL_CLIENT_ID)                                \
+            abd_execute_rpcs(AS_CONNECTION(server), &(server)->clients[i].incoming_rpc);  \
 
 #endif //ABD_NET_H

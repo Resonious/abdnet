@@ -1,4 +1,5 @@
 #include "net.h"
+#include <string.h>
 
 #ifdef _WIN32
 bool abd_winsock_initialized = false;
@@ -13,6 +14,13 @@ void abd_clean_up_winsock() {
 
 bool abd_addr_eq(struct sockaddr_in* a1, struct sockaddr_in* a2) {
     return a1->sin_addr.s_addr == a2->sin_addr.s_addr && a1->sin_port == a2->sin_port;
+}
+
+void init_rpc_target(RpcTarget* rpc) {
+    rpc->rpc_count = 0;
+    rpc->rpc_buf.bytes = rpc->raw_rpc_buffer;
+    rpc->rpc_buf.capacity = RPC_SEND_BUFFER_CAPACITY;
+    rpc->rpc_buf.pos = 0;
 }
 
 #ifdef _WIN32
@@ -39,8 +47,13 @@ bool abd_start_server(AbdServer* out_server, AbdNetConfig* in_config, uint16_t p
     memset(out_server, 0, sizeof(AbdServer));
     out_server->conf = *in_config;
 
-    for (int i = 0; i < ABD_NET_MAX_CLIENTS; i++)
-        out_server->clients[i].id = -1;
+    for (int i = 0; i < ABD_NET_MAX_CLIENTS; i++) {
+        out_server->clients[i].id = ABD_NULL_CLIENT_ID;
+        init_rpc_target(&out_server->clients[i].incoming_rpc);
+        init_rpc_target(&out_server->clients[i].outgoing_rpc);
+    }
+
+    init_rpc_target(&out_server->outgoing_rpc);
 
     out_server->socket = socket(AF_INET, SOCK_DGRAM, 0);
     if (out_server->socket == INVALID_SOCKET) {
@@ -76,6 +89,51 @@ static bool s2c_handshake_msg(AbdServer* server, struct sockaddr_in* to_addr, in
         return true;
 }
 
+/*
+    int16_t client_id;
+    abd_data_read[ABDT_S16](&recv_buf, &client_id);
+    uint16_t rpc_count;
+    abd_data_read[ABDT_U16](&recv_buf, &rpc_count);
+    if (rpc_count == 0)
+        break;
+    uint16_t rpc_byte_count;
+    abd_data_read[ABDT_U16](&recv_buf, &rpc_byte_count);
+*/
+static bool x2x_rpcs(AbdConnection* connection, struct sockaddr_in* target_addr, RpcTarget* rpc, bool consume) {
+    connection->send_buffer[0] = AOP_UNTIMED_RPC;
+
+    int16_t from_id;
+    if (connection->type == ABD_SERVER)
+        from_id = ABD_SERVER_ID;
+    else
+        from_id = AS_CLIENT(connection)->id;
+
+    AbdBuffer send_buf = {.bytes = connection->send_buffer + 1, .pos = 1, .capacity = RPC_SEND_BUFFER_CAPACITY};
+
+    abd_data_write[ABDT_S16](&send_buf, &from_id);
+    abd_data_write[ABDT_U16](&send_buf, &rpc->rpc_count);
+    if (rpc->rpc_count == 0)
+        goto Send;
+    abd_data_write[ABDT_U16](&send_buf, &(uint16_t)rpc->rpc_buf.pos);
+
+    memcpy(send_buf.bytes + send_buf.pos, rpc->rpc_buf.bytes, rpc->rpc_buf.pos);
+
+    if (consume) {
+        rpc->rpc_buf.pos = 0;
+        rpc->rpc_count = 0;
+    }
+
+Send:;
+    int send_result = sendto(connection->socket, send_buf.bytes, send_buf.pos, 0, target_addr, sizeof(struct sockaddr_in));
+
+    if (send_result == SOCKET_ERROR) {
+        connection->error = ABDE_FAILED_TO_SEND;
+        return false;
+    }
+    else
+        return true;
+}
+
 bool abd_server_tick(AbdServer* server) {
     struct sockaddr_in other_address;
     int other_address_len = sizeof(other_address);
@@ -99,6 +157,7 @@ bool abd_server_tick(AbdServer* server) {
     }
 
     uint8_t op = server->recv_buffer[0];
+    AbdBuffer recv_buf = {.bytes = server->recv_buffer + 1, .pos = 1, .capacity = ABD_RECV_BUFFER_CAPACITY};
 
     switch (op) {
     case AOP_HANDSHAKE: {
@@ -116,7 +175,7 @@ bool abd_server_tick(AbdServer* server) {
         for (int i = 0; i < ABD_NET_MAX_CLIENTS; i++) {
             client = &server->clients[i];
 
-            if (client->id == -1) {
+            if (client->id == ABD_NULL_CLIENT_ID) {
                 client->id = i;
                 client->address = other_address;
                 return s2c_handshake_msg(server, &other_address, other_address_len, i);
@@ -125,6 +184,34 @@ bool abd_server_tick(AbdServer* server) {
 
         // No room, sorry guy.
         return s2c_handshake_msg(server, &other_address, other_address_len, ABD_HANDSHAKE_NO_ROOM);
+    } break;
+
+    case AOP_UNTIMED_RPC: {
+        // TODO stick input into our inbound rpc buffer
+        AbdJoinedClient* client;
+
+        int16_t client_id;
+        abd_data_read[ABDT_S16](&recv_buf, &client_id);
+
+        // TODO don't just assert... Actually bogus data.
+        abd_assert(client_id >= 0); abd_assert(client_id < ABD_NET_MAX_CLIENTS);
+        client = &server->clients[client_id];
+
+        uint16_t rpc_count;
+        abd_data_read[ABDT_U16](&recv_buf, &rpc_count);
+        if (rpc_count == 0)
+            goto SendRpcs;
+        uint16_t rpc_byte_count;
+        abd_data_read[ABDT_U16](&recv_buf, &rpc_byte_count);
+
+        AbdBuffer* rpc_dest = &client->incoming_rpc.rpc_buf;
+        abd_assert(rpc_dest->pos + rpc_byte_count <= RPC_SEND_BUFFER_CAPACITY);
+
+        memcpy(rpc_dest->bytes + rpc_dest->pos, recv_buf.bytes + recv_buf.pos, rpc_byte_count);
+        client->incoming_rpc.rpc_count += rpc_count;
+
+    SendRpcs:
+        return x2x_rpcs(AS_CONNECTION(server), &client->address, &client->outgoing_rpc, true);
     } break;
 
     default:
@@ -154,6 +241,12 @@ bool abd_connect_to_server(AbdClient* out_client, AbdNetConfig* in_config, const
 
     memset(out_client, 0, sizeof(AbdClient));
     out_client->conf = *in_config;
+
+    for (int i = 0; i < ABD_NET_MAX_CLIENTS; i++)
+        out_client->clients[i].id = ABD_NULL_CLIENT_ID;
+
+    init_rpc_target(&out_client->incoming_rpc);
+    init_rpc_target(&out_client->outgoing_rpc);
 
     out_client->socket = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
     if (out_client->socket == INVALID_SOCKET) {
@@ -191,6 +284,7 @@ bool abd_client_tick(AbdClient* client) {
     }
 
     uint8_t op = client->recv_buffer[0];
+    AbdBuffer recv_buf = {.bytes = client->recv_buffer + 1, .pos = 1, .capacity = ABD_RECV_BUFFER_CAPACITY};
 
     switch (op) {
     case AOP_HANDSHAKE: {
@@ -212,6 +306,29 @@ bool abd_client_tick(AbdClient* client) {
         }
     } break;
 
+    case AOP_UNTIMED_RPC: {
+        int16_t client_id;
+        abd_data_read[ABDT_S16](&recv_buf, &client_id);
+        uint16_t rpc_count;
+        abd_data_read[ABDT_U16](&recv_buf, &rpc_count);
+        if (rpc_count == 0)
+            goto SendRpcs;
+        uint16_t rpc_byte_count;
+        abd_data_read[ABDT_U16](&recv_buf, &rpc_byte_count);
+
+        // TODO don't just assert... Actually bogus data.
+        abd_assert(client_id == ABD_SERVER_ID);
+
+        AbdBuffer* rpc_dest = &client->incoming_rpc.rpc_buf;
+        abd_assert(rpc_dest->pos + rpc_byte_count <= RPC_SEND_BUFFER_CAPACITY);
+
+        memcpy(rpc_dest->bytes + rpc_dest->pos, recv_buf.bytes + recv_buf.pos, rpc_byte_count);
+        client->incoming_rpc.rpc_count += rpc_count;
+
+    SendRpcs:
+        return x2x_rpcs(AS_CONNECTION(client), &client->server_address, &client->outgoing_rpc, true);
+    } break;
+
     default:
         printf("Unknown opcode %i\n", op);
         client->error = ABDE_UNKNOWN_OPCODE;
@@ -219,4 +336,22 @@ bool abd_client_tick(AbdClient* client) {
     }
 
     return true;
+}
+
+void abd_execute_rpcs(AbdConnection* connection, RpcTarget* rpc) {
+    RpcInfo info;
+    info.target = rpc;
+    info.con = connection;
+    info.flags = RPCF_EXECUTE_LOCALLY;
+    info.rw = ABD_READ;
+    rpc->rpc_buf.pos = 0;
+
+    while (rpc->rpc_count > 0) {
+        uint16_t rpc_id;
+        abd_transfer(ABD_READ, ABDT_U16, &rpc->rpc_buf, &rpc_id, NULL);
+
+        connection->conf.rpc_list[rpc_id](info);
+
+        rpc->rpc_count -= 1;
+    }
 }

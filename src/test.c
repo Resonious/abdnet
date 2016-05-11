@@ -155,15 +155,26 @@ static uint64_t qpf() {
 #endif
 }
 
-DEF_RPC(test_rpc, A(ABDT_S32, test_num); A(ABDT_FLOAT, other)) {
-    printf("test_num: %i ||| other: %f", test_num, other);
-} END_RPC
+DEF_RPC(negate_int_and_float, A(ABDT_S32, num1); A(ABDT_FLOAT, num2)) {
+    if (connection->type == ABD_CLIENT) {
+        struct ClientTestData { int32_t negative_test1; float negative_test2; };
+        AbdClient* client = AS_CLIENT(connection);
+        struct ClientTestData* data = (struct ClientTestData*)client->ud;
+
+        data->negative_test1 = -num1;
+        data->negative_test2 = -num2;
+    }
+    else {
+        printf("Why execute this on server?\n");
+    }
+}
+END_RPC
 
 static RpcFunc rpc_list[128] = {NULL};
 static void fill_rpc_list(AbdNetConfig* config) {
     config->rpc_list = rpc_list;
     int i = 0;
-    SET_RPC(config->rpc_list, test_rpc, i++);
+    SET_RPC(config->rpc_list, negate_int_and_float, i++);
 }
 
 static bool test_server_can_start(uint8_t* pmemory) {
@@ -183,7 +194,7 @@ static bool test_server_can_start(uint8_t* pmemory) {
 static bool test_client_can_join(uint8_t* pmemory) {
     TestMemory* mem = (TestMemory*)pmemory;
 
-    NET_EXPECT(mem->server.clients[0].id == -1);
+    NET_EXPECT(mem->server.clients[0].id == -2);
     // This should send out the handshake
     NET_EXPECT(abd_connect_to_server(&mem->client, &mem->config, "127.0.0.1", 7778));
     // Server receives handshake
@@ -197,17 +208,25 @@ static bool test_client_can_join(uint8_t* pmemory) {
     return true;
 }
 
-/* TODO
-static void test_run_rpc() {
-    test_rpc(ON_CLIENT(0), 100, 5.05f);
-    test_rpc(EVERYWHERE, 100, 5.05f);
-}
-*/
 static bool test_server_can_call_rpc_on_client(uint8_t* pmemory) {
     TestMemory* mem = (TestMemory*)pmemory;
 
-    // TODO TODO TODO
-    return false;
+    struct { int32_t negative_test1; float negative_test2; } client_test_data;
+    mem->client.ud = &client_test_data;
+
+    negate_int_and_float(CALL_ON_CLIENT_ID(&mem->server, 0), 10, 50.5f);
+    // Server sends RPC
+    NET_EXPECT(abd_server_tick(&mem->server));
+    // Client receives it
+    NET_EXPECT(abd_client_tick(&mem->client));
+    // then executes it
+    abd_execute_client_rpcs(&mem->client);
+
+    // make sure it worked
+    NET_EXPECT(client_test_data.negative_test1 == -10)
+    NET_EXPECT(client_test_data.negative_test2 == -50.5f)
+
+    return true;
 }
 
 static bool close_sockets(uint8_t* pmemory) {
@@ -222,7 +241,7 @@ static bool close_sockets(uint8_t* pmemory) {
 #define RUN_TEST(name) if (name(memory)) printf("===== passed! ====== "#name"\n"); else printf("===== FAILED. ====== "#name"\n");
 
 int main() {
-    uint8_t* memory = malloc(1024 * 10);
+    uint8_t* memory = malloc(1024 * 100);
 
     RUN_TEST(test_can_write_and_read_an_unannotated_float);
     RUN_TEST(test_can_write_and_read_an_annotated_float);
@@ -232,6 +251,8 @@ int main() {
 
     RUN_TEST(test_server_can_start);
     RUN_TEST(test_client_can_join);
+    // TODO test that another client can join, and that the first client receives the new client's info.
+    RUN_TEST(test_server_can_call_rpc_on_client);
     RUN_TEST(close_sockets);
 
     system("pause");

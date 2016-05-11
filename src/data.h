@@ -26,7 +26,7 @@
 
 #ifndef abd_assert
 #ifdef _DEBUG
-#define abd_assert(x) do {if (!(x)) { OutputDebugString("ASSERTION FAILED\n"); DebugBreak(); }} while(0)
+#define abd_assert(x) do {if (!(x)) { OutputDebugString("ASSERTION: \""#x"\" FAILED\n"); DebugBreak(); }} while(0)
 #else
 #define abd_assert(x) do {} while(0)
 #endif
@@ -126,8 +126,10 @@ void abd_read_string(AbdBuffer* buf, void* dest);
 #define data_float_a(rw, buf, data, write_annotation)  abd_transfer((rw), ABDT_FLOAT,  (buf), (data), (write_annotation))
 #define data_vec2_a(rw, buf, data, write_annotation)   abd_transfer((rw), ABDT_VEC2,   (buf), (data), (write_annotation))
 #define data_vec4_a(rw, buf, data, write_annotation)   abd_transfer((rw), ABDT_VEC4,   (buf), (data), (write_annotation))
+#define data_s16_a(rw, buf, data, write_annotation)    abd_transfer((rw), ABDT_S16,    (buf), (data), (write_annotation))
 #define data_s32_a(rw, buf, data, write_annotation)    abd_transfer((rw), ABDT_S32,    (buf), (data), (write_annotation))
 #define data_s64_a(rw, buf, data, write_annotation)    abd_transfer((rw), ABDT_S64,    (buf), (data), (write_annotation))
+#define data_u16_a(rw, buf, data, write_annotation)    abd_transfer((rw), ABDT_U16,    (buf), (data), (write_annotation))
 #define data_u32_a(rw, buf, data, write_annotation)    abd_transfer((rw), ABDT_U32,    (buf), (data), (write_annotation))
 #define data_u64_a(rw, buf, data, write_annotation)    abd_transfer((rw), ABDT_U64,    (buf), (data), (write_annotation))
 #define data_color_a(rw, buf, data, write_annotation)  abd_transfer((rw), ABDT_COLOR,  (buf), (data), (write_annotation))
@@ -143,8 +145,10 @@ void abd_read_string(AbdBuffer* buf, void* dest);
 #define data_float(rw, buf, data)  abd_transfer((rw), ABDT_FLOAT,  (buf), (data), IDENT_ANNOTATION(data))
 #define data_vec2(rw, buf, data)   abd_transfer((rw), ABDT_VEC2,   (buf), (data), IDENT_ANNOTATION(data))
 #define data_vec4(rw, buf, data)   abd_transfer((rw), ABDT_VEC4,   (buf), (data), IDENT_ANNOTATION(data))
+#define data_s16(rw, buf, data)    abd_transfer((rw), ABDT_S16,    (buf), (data), IDENT_ANNOTATION(data))
 #define data_s32(rw, buf, data)    abd_transfer((rw), ABDT_S32,    (buf), (data), IDENT_ANNOTATION(data))
 #define data_s64(rw, buf, data)    abd_transfer((rw), ABDT_S64,    (buf), (data), IDENT_ANNOTATION(data))
+#define data_u16(rw, buf, data)    abd_transfer((rw), ABDT_U16,    (buf), (data), IDENT_ANNOTATION(data))
 #define data_u32(rw, buf, data)    abd_transfer((rw), ABDT_U32,    (buf), (data), IDENT_ANNOTATION(data))
 #define data_u64(rw, buf, data)    abd_transfer((rw), ABDT_U64,    (buf), (data), IDENT_ANNOTATION(data))
 #define data_color(rw, buf, data)  abd_transfer((rw), ABDT_COLOR,  (buf), (data), IDENT_ANNOTATION(data))
