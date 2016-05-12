@@ -155,7 +155,7 @@ static uint64_t qpf() {
 #endif
 }
 
-DEF_RPC(negate_int_and_float, A(ABDT_S32, num1); A(ABDT_FLOAT, num2)) {
+DEFINE_RPC(negate_int_and_float, A(ABDT_S32, num1); A(ABDT_FLOAT, num2)) {
     if (connection->type == ABD_CLIENT) {
         struct ClientTestData { int32_t negative_test1; float negative_test2; };
         AbdClient* client = AS_CLIENT(connection);
@@ -215,6 +215,7 @@ static bool test_server_can_call_rpc_on_client(uint8_t* pmemory) {
     mem->client.ud = &client_test_data;
 
     negate_int_and_float(CALL_ON_CLIENT_ID(&mem->server, 0), 10, 50.5f);
+    abd_inspect(&mem->server.clients[0].outgoing_rpc.rpc_buf, stdout);
     // Server sends RPC
     NET_EXPECT(abd_server_tick(&mem->server));
     // Client receives it

@@ -82,7 +82,6 @@ typedef struct RpcInfo {
     uint8_t rw;
     uint8_t flags;
     struct AbdConnection* con;
-    struct AbdJoinedClient* from_client;
 } RpcInfo;
 
 typedef void(*RpcFunc)(RpcInfo, ...);
@@ -186,6 +185,6 @@ void abd_execute_rpcs(AbdConnection* connection, RpcTarget* rpc);
 #define abd_execute_server_rpcs(server)                                                   \
     for (int i = 0; i < ABD_NET_MAX_CLIENTS; i++)                                         \
         if ((server)->clients[i].id != ABD_NULL_CLIENT_ID)                                \
-            abd_execute_rpcs(AS_CONNECTION(server), &(server)->clients[i].incoming_rpc);  \
+            abd_execute_rpcs(AS_CONNECTION(server), &(server)->clients[i].incoming_rpc);
 
 #endif //ABD_NET_H

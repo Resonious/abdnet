@@ -107,6 +107,20 @@ static const char* abd_type_str(uint8_t type) {
 #define ABDT_BOOL_t    bool
 #define ABDT_STRING_t  char*
 
+// NOTE the structs in here are probably fucked....
+#define ABDT_FLOAT_vt   double
+#define ABDT_VEC2_vt    struct abdvec2 { float x, y; }
+#define ABDT_VEC4_vt    struct abdvec4 { float x, y, z, w; }
+#define ABDT_S16_vt     int
+#define ABDT_S32_vt     int
+#define ABDT_S64_vt     int
+#define ABDT_U16_vt     int
+#define ABDT_U32_vt     int
+#define ABDT_U64_vt     int
+#define ABDT_COLOR_vt   struct abdcolor { uint8_t r, g, b, a }
+#define ABDT_BOOL_vt    int
+#define ABDT_STRING_vt  char*
+
 typedef void(*DataFunc)(AbdBuffer*, void*);
 typedef void(*DataInspectFunc)(AbdBuffer*, uint8_t, FILE* f);
 extern DataFunc abd_data_write[];

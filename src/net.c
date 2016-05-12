@@ -45,6 +45,7 @@ bool abd_start_server(AbdServer* out_server, AbdNetConfig* in_config, uint16_t p
     abd_init_sockets(&out_server->error);
 
     memset(out_server, 0, sizeof(AbdServer));
+    out_server->type = ABD_SERVER;
     out_server->conf = *in_config;
 
     for (int i = 0; i < ABD_NET_MAX_CLIENTS; i++) {
@@ -108,7 +109,7 @@ static bool x2x_rpcs(AbdConnection* connection, struct sockaddr_in* target_addr,
     else
         from_id = AS_CLIENT(connection)->id;
 
-    AbdBuffer send_buf = {.bytes = connection->send_buffer + 1, .pos = 1, .capacity = RPC_SEND_BUFFER_CAPACITY};
+    AbdBuffer send_buf = {.bytes = connection->send_buffer, .pos = 1, .capacity = RPC_SEND_BUFFER_CAPACITY};
 
     abd_data_write[ABDT_S16](&send_buf, &from_id);
     abd_data_write[ABDT_U16](&send_buf, &rpc->rpc_count);
@@ -117,6 +118,7 @@ static bool x2x_rpcs(AbdConnection* connection, struct sockaddr_in* target_addr,
     abd_data_write[ABDT_U16](&send_buf, &(uint16_t)rpc->rpc_buf.pos);
 
     memcpy(send_buf.bytes + send_buf.pos, rpc->rpc_buf.bytes, rpc->rpc_buf.pos);
+    send_buf.pos += rpc->rpc_buf.pos;
 
     if (consume) {
         rpc->rpc_buf.pos = 0;
@@ -157,7 +159,7 @@ bool abd_server_tick(AbdServer* server) {
     }
 
     uint8_t op = server->recv_buffer[0];
-    AbdBuffer recv_buf = {.bytes = server->recv_buffer + 1, .pos = 1, .capacity = ABD_RECV_BUFFER_CAPACITY};
+    AbdBuffer recv_buf = {.bytes = server->recv_buffer, .pos = 1, .capacity = ABD_RECV_BUFFER_CAPACITY};
 
     switch (op) {
     case AOP_HANDSHAKE: {
@@ -240,6 +242,7 @@ bool abd_connect_to_server(AbdClient* out_client, AbdNetConfig* in_config, const
     abd_init_sockets(&out_client->error);
 
     memset(out_client, 0, sizeof(AbdClient));
+    out_client->type = ABD_CLIENT;
     out_client->conf = *in_config;
 
     for (int i = 0; i < ABD_NET_MAX_CLIENTS; i++)
@@ -284,7 +287,7 @@ bool abd_client_tick(AbdClient* client) {
     }
 
     uint8_t op = client->recv_buffer[0];
-    AbdBuffer recv_buf = {.bytes = client->recv_buffer + 1, .pos = 1, .capacity = ABD_RECV_BUFFER_CAPACITY};
+    AbdBuffer recv_buf = {.bytes = client->recv_buffer, .pos = 1, .capacity = ABD_RECV_BUFFER_CAPACITY};
 
     switch (op) {
     case AOP_HANDSHAKE: {
@@ -303,6 +306,7 @@ bool abd_client_tick(AbdClient* client) {
 
         default:
             client->id = id_or_error;
+            return x2x_rpcs(AS_CONNECTION(client), &client->server_address, &client->outgoing_rpc, true);
         }
     } break;
 
@@ -341,9 +345,9 @@ bool abd_client_tick(AbdClient* client) {
 void abd_execute_rpcs(AbdConnection* connection, RpcTarget* rpc) {
     RpcInfo info;
     info.target = rpc;
-    info.con = connection;
-    info.flags = RPCF_EXECUTE_LOCALLY;
-    info.rw = ABD_READ;
+    info.con    = connection;
+    info.flags  = RPCF_EXECUTE_LOCALLY;
+    info.rw     = ABD_READ;
     rpc->rpc_buf.pos = 0;
 
     while (rpc->rpc_count > 0) {
