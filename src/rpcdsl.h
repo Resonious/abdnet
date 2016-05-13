@@ -3,40 +3,43 @@
 #ifndef ABD_RPCDSL_H
 #define ABD_RPCDSL_H
 
+#define abd_defarg_val(argtype, argname) argtype##_t argname
+#define abd_defarg_ptr(argtype, argname) argtype##_t _##argname##_space; argtype##_t* argname = &_##argname##_space
+
+#define abd_defarg_ABDT_FLOAT(argtype, argname)  abd_defarg_val(argtype, argname)
+#define abd_defarg_ABDT_VEC2(argtype, argname)   abd_defarg_ptr(argtype, argname)
+#define abd_defarg_ABDT_VEC4(argtype, argname)   abd_defarg_ptr(argtype, argname)
+#define abd_defarg_ABDT_S16(argtype, argname)    abd_defarg_val(argtype, argname)
+#define abd_defarg_ABDT_S32(argtype, argname)    abd_defarg_val(argtype, argname)
+#define abd_defarg_ABDT_S64(argtype, argname)    abd_defarg_val(argtype, argname)
+#define abd_defarg_ABDT_U16(argtype, argname)    abd_defarg_val(argtype, argname)
+#define abd_defarg_ABDT_U32(argtype, argname)    abd_defarg_val(argtype, argname)
+#define abd_defarg_ABDT_U64(argtype, argname)    abd_defarg_val(argtype, argname)
+#define abd_defarg_ABDT_STRING(argtype, argname) char _##argname##_space[256]; char* argname = _##argname##_space
+
 #define va_arg_int_type(va, arg) arg = va_arg(va, int)
 
-#define va_arg_ABDT_FLOAT(va, arg) arg = (float)va_arg(va, double)
-#define va_arg_ABDT_VEC2(va, arg)  arg = va_arg(va, ABDT_VEC2_t*)
-#define va_arg_ABDT_VEC4(va, arg)  arg = va_arg(va, ABDT_VEC4_t*)
-#define va_arg_ABDT_S16(va, arg)   va_arg_int_type(va, arg)
-#define va_arg_ABDT_S32(va, arg)   va_arg_int_type(va, arg)
-#define va_arg_ABDT_S64(va, arg)   va_arg_int_type(va, arg)
-#define va_arg_ABDT_U16(va, arg)   va_arg_int_type(va, arg)
-#define va_arg_ABDT_U32(va, arg)   va_arg_int_type(va, arg)
-#define va_arg_ABDT_U64(va, arg)   va_arg_int_type(va, arg)
+#define va_arg_ABDT_FLOAT(va, arg)  arg = (float)va_arg(va, double)
+#define va_arg_ABDT_VEC2(va, arg)   arg = va_arg(va, ABDT_VEC2_t*)
+#define va_arg_ABDT_VEC4(va, arg)   arg = va_arg(va, ABDT_VEC4_t*)
+#define va_arg_ABDT_S16(va, arg)    va_arg_int_type(va, arg)
+#define va_arg_ABDT_S32(va, arg)    va_arg_int_type(va, arg)
+#define va_arg_ABDT_S64(va, arg)    va_arg_int_type(va, arg)
+#define va_arg_ABDT_U16(va, arg)    va_arg_int_type(va, arg)
+#define va_arg_ABDT_U32(va, arg)    va_arg_int_type(va, arg)
+#define va_arg_ABDT_U64(va, arg)    va_arg_int_type(va, arg)
+#define va_arg_ABDT_STRING(va, arg) arg = va_arg(va, char*)
 
-#define abd_ptr_ABDT_FLOAT(arg) (&(arg))
-#define abd_ptr_ABDT_VEC2(arg)  (arg)
-#define abd_ptr_ABDT_VEC4(arg)  (arg)
-#define abd_ptr_ABDT_S16(arg)   (&(arg))
-#define abd_ptr_ABDT_S32(arg)   (&(arg))
-#define abd_ptr_ABDT_S64(arg)   (&(arg))
-#define abd_ptr_ABDT_U16(arg)   (&(arg))
-#define abd_ptr_ABDT_U32(arg)   (&(arg))
-#define abd_ptr_ABDT_U64(arg)   (&(arg))
-
-#define abd_defarg_val(argtype, argname) argtype##_t argname
-#define abd_defarg_ptr(argtype, argname) argtype##_t _##argname##_space; argtype##_t* argname = &_##argname##_space;
-
-#define abd_defarg_ABDT_FLOAT(argtype, argname) abd_defarg_val(argtype, argname)
-#define abd_defarg_ABDT_VEC2(argtype, argname)  abd_defarg_ptr(argtype, argname)
-#define abd_defarg_ABDT_VEC4(argtype, argname)  abd_defarg_ptr(argtype, argname)
-#define abd_defarg_ABDT_S16(argtype, argname)   abd_defarg_val(argtype, argname)
-#define abd_defarg_ABDT_S32(argtype, argname)   abd_defarg_val(argtype, argname)
-#define abd_defarg_ABDT_S64(argtype, argname)   abd_defarg_val(argtype, argname)
-#define abd_defarg_ABDT_U16(argtype, argname)   abd_defarg_val(argtype, argname)
-#define abd_defarg_ABDT_U32(argtype, argname)   abd_defarg_val(argtype, argname)
-#define abd_defarg_ABDT_U64(argtype, argname)   abd_defarg_val(argtype, argname)
+#define abd_ptr_ABDT_FLOAT(arg)  (&(arg))
+#define abd_ptr_ABDT_VEC2(arg)   (arg)
+#define abd_ptr_ABDT_VEC4(arg)   (arg)
+#define abd_ptr_ABDT_S16(arg)    (&(arg))
+#define abd_ptr_ABDT_S32(arg)    (&(arg))
+#define abd_ptr_ABDT_S64(arg)    (&(arg))
+#define abd_ptr_ABDT_U16(arg)    (&(arg))
+#define abd_ptr_ABDT_U32(arg)    (&(arg))
+#define abd_ptr_ABDT_U64(arg)    (&(arg))
+#define abd_ptr_ABDT_STRING(arg) (arg)
 
 #define RPC_ARG(argtype, argname)\
     abd_defarg_##argtype(argtype, argname);\
