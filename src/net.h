@@ -103,6 +103,7 @@ enum AbdConnectionType {
     AbdNetError error;                             \
     AbdNetConfig conf;                             \
     SOCKET socket;                                 \
+    ABD_USER_DATA_TYPE ud;                         \
     uint8_t recv_buffer[ABD_RECV_BUFFER_CAPACITY]; \
     uint8_t send_buffer[ABD_RECV_BUFFER_CAPACITY]
 
@@ -126,7 +127,6 @@ typedef struct AbdJoinedClient {
 typedef struct AbdServer {
     ABD_CONNECTION_FIELDS;
     struct sockaddr_in address;
-    ABD_USER_DATA_TYPE ud;
     AbdJoinedClient clients[ABD_NET_MAX_CLIENTS];
     // Outgoing to all clients
     RpcTarget outgoing_rpc;
@@ -139,7 +139,6 @@ typedef struct AbdRemoteClient {
 typedef struct AbdClient {
     ABD_CONNECTION_FIELDS;
     struct sockaddr_in server_address;
-    ABD_USER_DATA_TYPE ud;
     int16_t id;
     AbdRemoteClient clients[ABD_NET_MAX_CLIENTS];
     // Incoming from server

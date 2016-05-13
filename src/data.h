@@ -94,32 +94,21 @@ static const char* abd_type_str(uint8_t type) {
     }
 }
 
+struct abdvec2_t { float x, y; };
+struct abdvec4_t { float x, y, z, w; };
+struct abdcolor_t { uint8_t r, g, b, a; };
 #define ABDT_FLOAT_t   float
-#define ABDT_VEC2_t    struct abdvec2 { float x, y; }
-#define ABDT_VEC4_t    struct abdvec4 { float x, y, z, w; }
+#define ABDT_VEC2_t    struct abdvec2_t
+#define ABDT_VEC4_t    struct abdvec4_t
 #define ABDT_S16_t     int16_t
 #define ABDT_S32_t     int32_t
 #define ABDT_S64_t     int64_t
 #define ABDT_U16_t     uint16_t
 #define ABDT_U32_t     uint32_t
 #define ABDT_U64_t     uint64_t
-#define ABDT_COLOR_t   struct abdcolor { uint8_t r, g, b, a }
+#define ABDT_COLOR_t   struct abdcolor_t
 #define ABDT_BOOL_t    bool
 #define ABDT_STRING_t  char*
-
-// NOTE the structs in here are probably fucked....
-#define ABDT_FLOAT_vt   double
-#define ABDT_VEC2_vt    struct abdvec2 { float x, y; }
-#define ABDT_VEC4_vt    struct abdvec4 { float x, y, z, w; }
-#define ABDT_S16_vt     int
-#define ABDT_S32_vt     int
-#define ABDT_S64_vt     int
-#define ABDT_U16_vt     int
-#define ABDT_U32_vt     int
-#define ABDT_U64_vt     int
-#define ABDT_COLOR_vt   struct abdcolor { uint8_t r, g, b, a }
-#define ABDT_BOOL_vt    int
-#define ABDT_STRING_vt  char*
 
 typedef void(*DataFunc)(AbdBuffer*, void*);
 typedef void(*DataInspectFunc)(AbdBuffer*, uint8_t, FILE* f);

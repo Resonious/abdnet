@@ -188,6 +188,7 @@ bool abd_server_tick(AbdServer* server) {
         return s2c_handshake_msg(server, &other_address, other_address_len, ABD_HANDSHAKE_NO_ROOM);
     } break;
 
+        // ===================== SERVER =====================
     case AOP_UNTIMED_RPC: {
         // TODO stick input into our inbound rpc buffer
         AbdJoinedClient* client;
@@ -310,6 +311,7 @@ bool abd_client_tick(AbdClient* client) {
         }
     } break;
 
+        // ===================== CLIENT =====================
     case AOP_UNTIMED_RPC: {
         int16_t client_id;
         abd_data_read[ABDT_S16](&recv_buf, &client_id);
@@ -358,4 +360,5 @@ void abd_execute_rpcs(AbdConnection* connection, RpcTarget* rpc) {
 
         rpc->rpc_count -= 1;
     }
+    rpc->rpc_buf.pos = 0;
 }
