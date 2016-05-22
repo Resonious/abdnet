@@ -296,6 +296,7 @@ static bool test_ultra_rpc_stress_test(uint8_t* pmemory) {
 
     NET_EXPECT(abd_server_tick(&mem->server));
     NET_EXPECT(abd_client_tick(&mem->client));
+    NET_EXPECT(abd_server_tick(&mem->server));
 
     abd_execute_client_rpcs(&mem->client);
     abd_execute_server_rpcs(&mem->server);
