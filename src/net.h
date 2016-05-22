@@ -82,6 +82,7 @@ typedef struct RpcInfo {
     uint8_t rw;
     uint8_t flags;
     struct AbdConnection* con;
+    struct AbdConnection* from;
 } RpcInfo;
 
 typedef void(*RpcFunc)(RpcInfo, ...);
@@ -154,8 +155,8 @@ typedef struct AbdClient {
 enum AbdOpcode {
     // First opcode sent to server by client should be this.
     AOP_HANDSHAKE,
-    // An untimed RPC is executed as soon as it's received.
-    AOP_UNTIMED_RPC
+    // Pretty much every packet will be of this op.
+    AOP_RPC
 };
 
 // --- handshake errors received by client ---

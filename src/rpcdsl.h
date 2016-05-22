@@ -75,17 +75,18 @@
         argdefs;                                                                            \
         if (_rpcinfo.rw == ABD_WRITE) va_end(_va);                                          \
         AbdConnection* connection = _rpcinfo.con;                                           \
+        AbdConnection* sender     = _rpcinfo.from;                                          \
         if (_rpcinfo.flags & RPCF_EXECUTE_LOCALLY) {
 
 #define END_RPC }}
 
 #define DEFINE_RPC DEF_RPC
 
-#define CALL_ON_CLIENT_ID(server, client_id) (RpcInfo){ &(server)->clients[(client_id)].outgoing_rpc, ABD_WRITE, 0, AS_CONNECTION(server) }
-#define CALL_ON_CLIENT(joined_client)        (RpcInfo){ &(joined_client)->outgoing_rpc, ABD_WRITE, 0, AS_CONNECTION((joined_client)->server) }
-#define CALL_ON_ALL_CLIENTS(server)          (RpcInfo){ &(server)->outgoing_rpc, ABD_WRITE, 0, AS_CONNECTION(server) }
-#define CALL_EVERYWHERE(server)              (RpcInfo){ &(server)->outgoing_rpc, ABD_WRITE, RPCF_EXECUTE_LOCALLY, AS_CONNECTION(server) }
-#define CALL_LOCALLY(connection)             (RpcInfo){ NULL, ABD_WRITE, RPCF_EXECUTE_LOCALLY, AS_CONNECTION(connection) }
-#define CALL_ON_SERVER(client)               (RpcInfo){ &(client)->outgoing_rpc, ABD_WRITE, 0, AS_CONNECTION(client) }
+#define CALL_ON_CLIENT_ID(server, client_id) (RpcInfo){ &(server)->clients[(client_id)].outgoing_rpc, ABD_WRITE, 0, AS_CONNECTION(server), NULL }
+#define CALL_ON_CLIENT(joined_client)        (RpcInfo){ &(joined_client)->outgoing_rpc, ABD_WRITE, 0, AS_CONNECTION((joined_client)->server), NULL }
+#define CALL_ON_ALL_CLIENTS(server)          (RpcInfo){ &(server)->outgoing_rpc, ABD_WRITE, 0, AS_CONNECTION(server), NULL }
+#define CALL_EVERYWHERE(server)              (RpcInfo){ &(server)->outgoing_rpc, ABD_WRITE, RPCF_EXECUTE_LOCALLY, AS_CONNECTION(server), NULL }
+#define CALL_LOCALLY(connection)             (RpcInfo){ NULL, ABD_WRITE, RPCF_EXECUTE_LOCALLY, AS_CONNECTION(connection), NULL }
+#define CALL_ON_SERVER(client)               (RpcInfo){ &(client)->outgoing_rpc, ABD_WRITE, 0, AS_CONNECTION(client), NULL }
 
 #endif

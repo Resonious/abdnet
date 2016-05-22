@@ -180,12 +180,24 @@ DEFINE_RPC(add_vecs, A(ABDT_VEC2, v1); A(ABDT_VEC2, v2)) {
 }
 END_RPC
 
+DEFINE_RPC(cat_strings, A(ABDT_STRING, s1); A(ABDT_STRING, s2)) {
+    struct ClientTestData { vec2 result; char* str_result; }* data = (struct ClientTestData*)connection->ud;
+
+    const size_t strsize = 256 * 2;
+    data->str_result = malloc(strsize);
+    strcpy_s(data->str_result, strsize, s1);
+    strcat_s(data->str_result, strsize, s2);
+    // Remember to free data->str_result lol.
+}
+END_RPC
+
 static RpcFunc rpc_list[128] = {NULL};
 static void fill_rpc_list(AbdNetConfig* config) {
     config->rpc_list = rpc_list;
     int i = 0;
     SET_RPC(config->rpc_list, negate_int_and_float, i++);
     SET_RPC(config->rpc_list, add_vecs, i++);
+    SET_RPC(config->rpc_list, cat_strings, i++);
     abd_assert(rpcid_add_vecs == 1);
 }
 
@@ -242,20 +254,58 @@ static bool test_server_can_call_rpc_on_client(uint8_t* pmemory) {
     return true;
 }
 
-static bool test_rpcs_with_struct_types_work(uint8_t* pmemory) {
+static bool test_rpcs_with_pointer_types_work(uint8_t* pmemory) {
     TestMemory* mem = (TestMemory*)pmemory;
 
-    struct { vec2 result;  } client_test_data;
+    struct { vec2 result; char* str_result; } client_test_data;
     mem->client.ud = &client_test_data;
 
     vec2 v1 = { 10, -5 }, v2 = { 1, 4 };
     add_vecs(CALL_ON_CLIENT_ID(&mem->server, 0), &v1, &v2);
+    cat_strings(CALL_ON_CLIENT_ID(&mem->server, 0), "hello", " there");
+
     NET_EXPECT(abd_server_tick(&mem->server));
     NET_EXPECT(abd_client_tick(&mem->client));
     abd_execute_client_rpcs(&mem->client);
 
     NET_EXPECT(client_test_data.result.x == 11);
     NET_EXPECT(client_test_data.result.y == -1);
+    NET_EXPECT(strcmp("hello there", client_test_data.str_result) == 0);
+
+    free(client_test_data.str_result);
+    return true;
+}
+
+typedef struct {
+    vec2 v_result;
+    char* str_result;
+} TestData;
+
+static bool test_ultra_rpc_stress_test(uint8_t* pmemory) {
+    TestMemory* mem = (TestMemory*)pmemory;
+    TestData client_test_data;
+    TestData server_test_data;
+
+    mem->client.ud = &client_test_data;
+    mem->server.ud = &server_test_data;
+
+    vec2 v1 = { 1, 1 }, v2 = { 2, 2 };
+
+    add_vecs(CALL_ON_SERVER(&mem->client), &v1, &v2);
+    add_vecs(CALL_ON_CLIENT_ID(&mem->server, 0), &v1, &v2);
+
+    NET_EXPECT(abd_server_tick(&mem->server));
+    NET_EXPECT(abd_client_tick(&mem->client));
+
+    abd_execute_client_rpcs(&mem->client);
+    abd_execute_server_rpcs(&mem->server);
+
+    NET_EXPECT(client_test_data.v_result.x == 3);
+    NET_EXPECT(client_test_data.v_result.y == 3);
+    NET_EXPECT(server_test_data.v_result.x == 3);
+    NET_EXPECT(server_test_data.v_result.y == 3);
+
+    return true;
 }
 
 static bool close_sockets(uint8_t* pmemory) {
@@ -282,7 +332,8 @@ int main() {
     RUN_TEST(test_client_can_join);
     // TODO test that another client can join, and that the first client receives the new client's info.
     RUN_TEST(test_server_can_call_rpc_on_client);
-    RUN_TEST(test_rpcs_with_struct_types_work);
+    RUN_TEST(test_rpcs_with_pointer_types_work);
+    RUN_TEST(test_ultra_rpc_stress_test);
     RUN_TEST(close_sockets);
 
     system("pause");

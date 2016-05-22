@@ -90,18 +90,8 @@ static bool s2c_handshake_msg(AbdServer* server, struct sockaddr_in* to_addr, in
         return true;
 }
 
-/*
-    int16_t client_id;
-    abd_data_read[ABDT_S16](&recv_buf, &client_id);
-    uint16_t rpc_count;
-    abd_data_read[ABDT_U16](&recv_buf, &rpc_count);
-    if (rpc_count == 0)
-        break;
-    uint16_t rpc_byte_count;
-    abd_data_read[ABDT_U16](&recv_buf, &rpc_byte_count);
-*/
 static bool x2x_rpcs(AbdConnection* connection, struct sockaddr_in* target_addr, RpcTarget* rpc, bool consume) {
-    connection->send_buffer[0] = AOP_UNTIMED_RPC;
+    connection->send_buffer[0] = AOP_RPC;
 
     int16_t from_id;
     if (connection->type == ABD_SERVER)
@@ -189,14 +179,13 @@ bool abd_server_tick(AbdServer* server) {
     } break;
 
         // ===================== SERVER =====================
-    case AOP_UNTIMED_RPC: {
-        // TODO stick input into our inbound rpc buffer
+    case AOP_RPC: {
         AbdJoinedClient* client;
 
         int16_t client_id;
         abd_data_read[ABDT_S16](&recv_buf, &client_id);
 
-        // TODO don't just assert... Actually bogus data.
+        // TODO don't just assert... Actually HANDLE bogus data.
         abd_assert(client_id >= 0); abd_assert(client_id < ABD_NET_MAX_CLIENTS);
         client = &server->clients[client_id];
 
@@ -212,6 +201,7 @@ bool abd_server_tick(AbdServer* server) {
 
         memcpy(rpc_dest->bytes + rpc_dest->pos, recv_buf.bytes + recv_buf.pos, rpc_byte_count);
         client->incoming_rpc.rpc_count += rpc_count;
+        rpc_dest->pos += rpc_byte_count;
 
     SendRpcs:
         return x2x_rpcs(AS_CONNECTION(server), &client->address, &client->outgoing_rpc, true);
@@ -312,7 +302,7 @@ bool abd_client_tick(AbdClient* client) {
     } break;
 
         // ===================== CLIENT =====================
-    case AOP_UNTIMED_RPC: {
+    case AOP_RPC: {
         int16_t client_id;
         abd_data_read[ABDT_S16](&recv_buf, &client_id);
         uint16_t rpc_count;
@@ -330,6 +320,7 @@ bool abd_client_tick(AbdClient* client) {
 
         memcpy(rpc_dest->bytes + rpc_dest->pos, recv_buf.bytes + recv_buf.pos, rpc_byte_count);
         client->incoming_rpc.rpc_count += rpc_count;
+        rpc_dest->pos += rpc_byte_count;
 
     SendRpcs:
         return x2x_rpcs(AS_CONNECTION(client), &client->server_address, &client->outgoing_rpc, true);
