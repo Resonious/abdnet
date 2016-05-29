@@ -348,12 +348,13 @@ bool abd_client_tick(AbdClient* client) {
     return true;
 }
 
-void abd_execute_rpcs(AbdConnection* connection, RpcTarget* rpc) {
+void abd_execute_rpcs(AbdConnection* connection, RpcTarget* rpc, AbdConnection* sender) {
     RpcInfo info;
     info.target = rpc;
     info.con    = connection;
     info.flags  = RPCF_EXECUTE_LOCALLY;
     info.rw     = ABD_READ;
+    info.from   = sender;
     rpc->rpc_buf.pos = 0;
 
     while (rpc->rpc_count > 0) {

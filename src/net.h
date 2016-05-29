@@ -188,11 +188,11 @@ bool abd_connect_to_server(AbdClient* out_server, AbdNetConfig* in_config, const
  */
 bool abd_client_tick(AbdClient* client);
 
-void abd_execute_rpcs(AbdConnection* connection, RpcTarget* rpc);
-#define abd_execute_client_rpcs(client) abd_execute_rpcs(AS_CONNECTION(client), &(client)->incoming_rpc)
-#define abd_execute_server_rpcs(server)                                                   \
-    for (int i = 0; i < ABD_NET_MAX_CLIENTS; i++)                                         \
-        if ((server)->clients[i].id != ABD_NULL_CLIENT_ID)                                \
-            abd_execute_rpcs(AS_CONNECTION(server), &(server)->clients[i].incoming_rpc);
+void abd_execute_rpcs(AbdConnection* connection, RpcTarget* rpc, AbdConnection* sender);
+#define abd_execute_client_rpcs(client) abd_execute_rpcs(AS_CONNECTION(client), &(client)->incoming_rpc, NULL)
+#define abd_execute_server_rpcs(server)                                                                         \
+    for (int i = 0; i < ABD_NET_MAX_CLIENTS; i++)                                                               \
+        if ((server)->clients[i].id != ABD_NULL_CLIENT_ID)                                                      \
+            abd_execute_rpcs(AS_CONNECTION(server), &(server)->clients[i].incoming_rpc, &(server)->clients[i]);
 
 #endif //ABD_NET_H
