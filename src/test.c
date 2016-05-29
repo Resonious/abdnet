@@ -143,6 +143,7 @@ typedef struct TestMemory {
     AbdNetConfig config;
     AbdServer server;
     AbdClient client;
+    AbdClient client2;
 } TestMemory;
 
 static uint64_t qpf() {
@@ -208,6 +209,7 @@ static bool test_server_can_start(uint8_t* pmemory) {
     QueryPerformanceFrequency(&mem->config.performace_frequency);
 #endif
     mem->config.get_performance_counter = qpf;
+    memset(&mem->config, 0, sizeof(mem->config));
     fill_rpc_list(&mem->config);
 
     EXPECT(abd_start_server(&mem->server, &mem->config, 7778));
@@ -281,7 +283,7 @@ typedef struct {
     char* str_result;
 } TestData;
 
-static bool test_ultra_rpc_stress_test(uint8_t* pmemory) {
+static bool test_rpc_back_and_forth(uint8_t* pmemory) {
     TestMemory* mem = (TestMemory*)pmemory;
     TestData client_test_data;
     TestData server_test_data;
@@ -309,10 +311,33 @@ static bool test_ultra_rpc_stress_test(uint8_t* pmemory) {
     return true;
 }
 
+static bool test_second_client_can_join(uint8_t* pmemory) {
+    TestMemory* mem = (TestMemory*)pmemory;
+
+    NET_EXPECT(mem->server.clients[1].id == -2);
+    // This should send out the handshake
+    NET_EXPECT(abd_connect_to_server(&mem->client2, &mem->config, "127.0.0.1", 7778));
+    // Server receives handshake
+    NET_EXPECT(abd_server_tick(&mem->server));
+    // Client receives ID after handshake
+    NET_EXPECT(abd_client_tick(&mem->client2));
+
+    NET_EXPECT(mem->client2.id == 1);
+    NET_EXPECT(mem->server.clients[1].id == 1);
+
+    // Other client should have received the new client's ID:
+    NET_EXPECT(abd_server_tick(&mem->server));
+    NET_EXPECT(abd_client_tick(&mem->client2));
+    NET_EXPECT(mem->client2.clients[1].id == 1);
+
+    return true;
+}
+
 static bool close_sockets(uint8_t* pmemory) {
     TestMemory* mem = (TestMemory*)pmemory;
     closesocket(mem->server.socket);
     closesocket(mem->client.socket);
+    closesocket(mem->client2.socket);
     return true;
 }
 
@@ -331,10 +356,10 @@ int main() {
 
     RUN_TEST(test_server_can_start);
     RUN_TEST(test_client_can_join);
-    // TODO test that another client can join, and that the first client receives the new client's info.
     RUN_TEST(test_server_can_call_rpc_on_client);
     RUN_TEST(test_rpcs_with_pointer_types_work);
-    RUN_TEST(test_ultra_rpc_stress_test);
+    RUN_TEST(test_rpc_back_and_forth);
+    RUN_TEST(test_second_client_can_join);
     RUN_TEST(close_sockets);
 
     system("pause");

@@ -1,4 +1,5 @@
 #include "net.h"
+#include "core_rpcs.h"
 #include <string.h>
 
 #ifdef _WIN32
@@ -41,12 +42,15 @@ static void abd_init_sockets(AbdNetError* err) {
 #define abd_init_sockets(x) do{*(x)=ABDE_NO_ERROR;}while(0)
 #endif
 
+// =========================== CREATE SERVER =========================
+
 bool abd_start_server(AbdServer* out_server, AbdNetConfig* in_config, uint16_t port) {
     abd_init_sockets(&out_server->error);
 
     memset(out_server, 0, sizeof(AbdServer));
     out_server->type = ABD_SERVER;
     out_server->conf = *in_config;
+    init_core_rpcs(&out_server->conf);
 
     for (int i = 0; i < ABD_NET_MAX_CLIENTS; i++) {
         out_server->clients[i].id = ABD_NULL_CLIENT_ID;
@@ -170,6 +174,11 @@ bool abd_server_tick(AbdServer* server) {
             if (client->id == ABD_NULL_CLIENT_ID) {
                 client->id = i;
                 client->address = other_address;
+
+                for (int j = 0; j < ABD_NET_MAX_CLIENTS; j++)
+                    if (j != i)
+                        server->conf.core_rpcs[CRPC_CLIENT_JOINED](CALL_ON_CLIENT_ID(server, j), i);
+
                 return s2c_handshake_msg(server, &other_address, other_address_len, i);
             }
         }
@@ -229,12 +238,15 @@ static bool c2s_handshake_msg(AbdClient* client) {
         return true;
 }
 
+// =========================== CREATE CLIENT ==========================
+
 bool abd_connect_to_server(AbdClient* out_client, AbdNetConfig* in_config, const char* ip_address, uint16_t port) {
     abd_init_sockets(&out_client->error);
 
     memset(out_client, 0, sizeof(AbdClient));
     out_client->type = ABD_CLIENT;
     out_client->conf = *in_config;
+    init_core_rpcs(&out_client->conf);
 
     for (int i = 0; i < ABD_NET_MAX_CLIENTS; i++)
         out_client->clients[i].id = ABD_NULL_CLIENT_ID;
@@ -297,6 +309,7 @@ bool abd_client_tick(AbdClient* client) {
 
         default:
             client->id = id_or_error;
+            client->clients[client->id].id = client->id;
             return x2x_rpcs(AS_CONNECTION(client), &client->server_address, &client->outgoing_rpc, true);
         }
     } break;
@@ -347,9 +360,21 @@ void abd_execute_rpcs(AbdConnection* connection, RpcTarget* rpc) {
         uint16_t rpc_id;
         abd_transfer(ABD_READ, ABDT_U16, &rpc->rpc_buf, &rpc_id, NULL);
 
-        connection->conf.rpc_list[rpc_id](info);
+        // Negative RPC IDs indicate core RPCs. (for client disconnecting, joining, etc)
+        if (rpc_id < 0)
+            connection->conf.core_rpcs[-rpc_id](info);
+        else
+            connection->conf.rpc_list[rpc_id](info);
 
         rpc->rpc_count -= 1;
     }
     rpc->rpc_buf.pos = 0;
+}
+
+void init_core_rpcs(AbdNetConfig* conf) {
+    if (conf->core_rpcs[CRPC_CLIENT_JOINED] == NULL)
+        SET_CORE_RPC(conf->core_rpcs, corerpc_client_joined, CRPC_CLIENT_JOINED);
+
+    if (conf->core_rpcs[CRPC_DISCONNECT] == NULL)
+        SET_CORE_RPC(conf->core_rpcs, corerpc_disconnect, CRPC_DISCONNECT);
 }

@@ -58,6 +58,7 @@
 #endif
 
 #define SET_RPC(rpc_list, rpc_func, index) { int _i = index; (rpc_list)[_i] = rpc_func; rpcid_##rpc_func = _i; }
+#define SET_CORE_RPC(rpc_list, rpc_func, index) { int _i = index; (rpc_list)[_i] = rpc_func; rpcid_##rpc_func = -_i; }
 
 #define DEF_RPC(funcname, argdefs)                                                          \
     uint16_t rpcid_##funcname;                                                              \
@@ -82,7 +83,7 @@
 
 #define DEFINE_RPC DEF_RPC
 
-#define CALL_ON_CLIENT_ID(server, client_id) (RpcInfo){ &(server)->clients[(client_id)].outgoing_rpc, ABD_WRITE, 0, AS_CONNECTION(server), NULL }
+#define CALL_ON_CLIENT_ID(server, client_id) (RpcInfo){ &(server)->clients[client_id].outgoing_rpc, ABD_WRITE, 0, AS_CONNECTION(server), NULL }
 #define CALL_ON_CLIENT(joined_client)        (RpcInfo){ &(joined_client)->outgoing_rpc, ABD_WRITE, 0, AS_CONNECTION((joined_client)->server), NULL }
 #define CALL_ON_ALL_CLIENTS(server)          (RpcInfo){ &(server)->outgoing_rpc, ABD_WRITE, 0, AS_CONNECTION(server), NULL }
 #define CALL_EVERYWHERE(server)              (RpcInfo){ &(server)->outgoing_rpc, ABD_WRITE, RPCF_EXECUTE_LOCALLY, AS_CONNECTION(server), NULL }

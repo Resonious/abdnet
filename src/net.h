@@ -87,11 +87,18 @@ typedef struct RpcInfo {
 
 typedef void(*RpcFunc)(RpcInfo, ...);
 
+enum AbdCoreRpc {
+    CRPC_CLIENT_JOINED,
+    CRPC_DISCONNECT,
+    CORE_RPC_COUNT
+};
+
 typedef struct AbdNetConfig {
     uint64_t performace_frequency;
     uint64_t(*get_performance_counter)();
 
     RpcFunc* rpc_list;
+    RpcFunc core_rpcs[CORE_RPC_COUNT];
 } AbdNetConfig;
 
 enum AbdConnectionType {
@@ -165,6 +172,7 @@ enum AbdOpcode {
 
 bool abd_addr_eq(struct sockaddr_in* a1, struct sockaddr_in* a2);
 void init_rpc_target(RpcTarget* rpc);
+void init_core_rpcs(AbdNetConfig* conf);
 
 bool abd_start_server(AbdServer* out_server, AbdNetConfig* in_config, uint16_t port);
 /* Receive one packet and send the response.
