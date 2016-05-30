@@ -287,11 +287,10 @@ static bool test_rpc_back_and_forth(uint8_t* pmemory) {
     TestMemory* mem = (TestMemory*)pmemory;
     TestData client_test_data;
     TestData server_test_data;
+    vec2 v1 = { 1, 1 }, v2 = { 2, 2 };
 
     mem->client.ud = &client_test_data;
     mem->server.ud = &server_test_data;
-
-    vec2 v1 = { 1, 1 }, v2 = { 2, 2 };
 
     add_vecs(CALL_ON_SERVER(&mem->client), &v1, &v2);
     add_vecs(CALL_ON_CLIENT_ID(&mem->server, 0), &v1, &v2);

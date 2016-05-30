@@ -75,8 +75,8 @@
         if (_rpcinfo.rw == ABD_WRITE) va_start(_va, _rpcinfo);                              \
         argdefs;                                                                            \
         if (_rpcinfo.rw == ABD_WRITE) va_end(_va);                                          \
-        AbdConnection* connection = _rpcinfo.con;                                           \
-        AbdClient*     sender     = AS_CLIENT(_rpcinfo.from);                               \
+        AbdConnection*   connection = _rpcinfo.con;                                         \
+        AbdJoinedClient* sender     = (AbdJoinedClient*)_rpcinfo.from;                      \
         if (_rpcinfo.flags & RPCF_EXECUTE_LOCALLY) {
 
 #define END_RPC }}
