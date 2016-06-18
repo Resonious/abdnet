@@ -7,13 +7,6 @@
 #include <stdio.h>
 #include <string.h>
 
-#ifdef _DEBUG
-#ifdef _WIN32
-#define WIN32_LEAN_AND_MEAN
-#include <Windows.h>
-#endif
-#endif
-
 #ifndef bool
 #define bool int8_t
 #endif
@@ -26,7 +19,11 @@
 
 #ifndef abd_assert
 #ifdef _DEBUG
+#ifdef _WIN32
+#define WIN32_LEAN_AND_MEAN
+#include <Windows.h>
 #define abd_assert(x) do {if (!(x)) { OutputDebugString("ASSERTION: \""#x"\" FAILED\n"); DebugBreak(); }} while(0)
+#endif
 #else
 #define abd_assert(x) do {} while(0)
 #endif
@@ -35,7 +32,6 @@
 #define ABD_READ 0
 #define ABD_WRITE 1
 
-// This is interchangeable with DataChunk in game.h - with size swapped for pos.
 typedef struct AbdBuffer {
     int pos;
     int capacity;
@@ -61,9 +57,11 @@ enum AbdType {
     ABDT_FLOAT,
     ABDT_VEC2,
     ABDT_VEC4,
+    ABDT_S8,
     ABDT_S16,
     ABDT_S32,
     ABDT_S64,
+    ABDT_U8,
     ABDT_U16,
     ABDT_U32,
     ABDT_U64,
@@ -79,9 +77,11 @@ static const char* abd_type_str(uint8_t type) {
     case ABDT_FLOAT:   return "Float";
     case ABDT_VEC2:    return "Vec2";
     case ABDT_VEC4:    return "Vec4";
+    case ABDT_S8:      return "Sint8";
     case ABDT_S16:     return "Sint16";
     case ABDT_S32:     return "Sint32";
     case ABDT_S64:     return "Sint64";
+    case ABDT_U8:      return "Uint8";
     case ABDT_U16:     return "Uint16";
     case ABDT_U32:     return "Uint32";
     case ABDT_U64:     return "Uint64";
@@ -100,9 +100,11 @@ struct abdcolor_t { uint8_t r, g, b, a; };
 #define ABDT_FLOAT_t   float
 #define ABDT_VEC2_t    struct abdvec2_t
 #define ABDT_VEC4_t    struct abdvec4_t
+#define ABDT_S8_t      int8_t
 #define ABDT_S16_t     int16_t
 #define ABDT_S32_t     int32_t
 #define ABDT_S64_t     int64_t
+#define ABDT_U8_t      uint8_t
 #define ABDT_U16_t     uint16_t
 #define ABDT_U32_t     uint32_t
 #define ABDT_U64_t     uint64_t
@@ -129,9 +131,11 @@ void abd_read_string(AbdBuffer* buf, void* dest);
 #define data_float_a(rw, buf, data, write_annotation)  abd_transfer((rw), ABDT_FLOAT,  (buf), (data), (write_annotation))
 #define data_vec2_a(rw, buf, data, write_annotation)   abd_transfer((rw), ABDT_VEC2,   (buf), (data), (write_annotation))
 #define data_vec4_a(rw, buf, data, write_annotation)   abd_transfer((rw), ABDT_VEC4,   (buf), (data), (write_annotation))
+#define data_s8_a(rw, buf, data, write_annotation)     abd_transfer((rw), ABDT_S8,     (buf), (data), (write_annotation))
 #define data_s16_a(rw, buf, data, write_annotation)    abd_transfer((rw), ABDT_S16,    (buf), (data), (write_annotation))
 #define data_s32_a(rw, buf, data, write_annotation)    abd_transfer((rw), ABDT_S32,    (buf), (data), (write_annotation))
 #define data_s64_a(rw, buf, data, write_annotation)    abd_transfer((rw), ABDT_S64,    (buf), (data), (write_annotation))
+#define data_u8_a(rw, buf, data, write_annotation)     abd_transfer((rw), ABDT_U8,     (buf), (data), (write_annotation))
 #define data_u16_a(rw, buf, data, write_annotation)    abd_transfer((rw), ABDT_U16,    (buf), (data), (write_annotation))
 #define data_u32_a(rw, buf, data, write_annotation)    abd_transfer((rw), ABDT_U32,    (buf), (data), (write_annotation))
 #define data_u64_a(rw, buf, data, write_annotation)    abd_transfer((rw), ABDT_U64,    (buf), (data), (write_annotation))
@@ -148,9 +152,11 @@ void abd_read_string(AbdBuffer* buf, void* dest);
 #define data_float(rw, buf, data)  abd_transfer((rw), ABDT_FLOAT,  (buf), (data), IDENT_ANNOTATION(data))
 #define data_vec2(rw, buf, data)   abd_transfer((rw), ABDT_VEC2,   (buf), (data), IDENT_ANNOTATION(data))
 #define data_vec4(rw, buf, data)   abd_transfer((rw), ABDT_VEC4,   (buf), (data), IDENT_ANNOTATION(data))
+#define data_s8(rw, buf, data)     abd_transfer((rw), ABDT_S8,     (buf), (data), IDENT_ANNOTATION(data))
 #define data_s16(rw, buf, data)    abd_transfer((rw), ABDT_S16,    (buf), (data), IDENT_ANNOTATION(data))
 #define data_s32(rw, buf, data)    abd_transfer((rw), ABDT_S32,    (buf), (data), IDENT_ANNOTATION(data))
 #define data_s64(rw, buf, data)    abd_transfer((rw), ABDT_S64,    (buf), (data), IDENT_ANNOTATION(data))
+#define data_u8(rw, buf, data)     abd_transfer((rw), ABDT_U8,     (buf), (data), IDENT_ANNOTATION(data))
 #define data_u16(rw, buf, data)    abd_transfer((rw), ABDT_U16,    (buf), (data), IDENT_ANNOTATION(data))
 #define data_u32(rw, buf, data)    abd_transfer((rw), ABDT_U32,    (buf), (data), IDENT_ANNOTATION(data))
 #define data_u64(rw, buf, data)    abd_transfer((rw), ABDT_U64,    (buf), (data), IDENT_ANNOTATION(data))

@@ -152,9 +152,11 @@ DataFunc abd_data_write[] = {
     write_4_bytes,   // ABDT_FLOAT
     write_8_bytes,   // ABDT_VEC2
     write_4_floats,  // ABDT_VEC4
+    write_1_byte,    // ABDT_S8
     write_2_bytes,   // ABDT_S16
     write_4_bytes,   // ABDT_S32
     write_8_bytes,   // ABDT_S64
+    write_1_byte,    // ABDT_U8
     write_2_bytes,   // ABDT_U16
     write_4_bytes,   // ABDT_U32
     write_8_bytes,   // ABDT_U64
@@ -167,9 +169,11 @@ DataFunc abd_data_read[] = {
     read_4_bytes,   // ABDT_FLOAT
     read_8_bytes,   // ABDT_VEC2
     read_4_floats,  // ABDT_VEC4
+    read_1_byte,    // ABDT_S8
     read_2_bytes,   // ABDT_S16
     read_4_bytes,   // ABDT_S32
     read_8_bytes,   // ABDT_S64
+    read_1_byte,    // ABDT_U8
     read_2_bytes,   // ABDT_U16
     read_4_bytes,   // ABDT_U32
     read_8_bytes,   // ABDT_U64
@@ -182,9 +186,11 @@ DataInspectFunc abd_data_inspect[] = {
     inspect_float,        // ABDT_FLOAT
     inspect_vec2,         // ABDT_VEC2
     inspect_vec4,         // ABDT_VEC4
+    inspect_integer_type, // ABDT_S8
     inspect_integer_type, // ABDT_S16
     inspect_integer_type, // ABDT_S32
     inspect_integer_type, // ABDT_S64
+    inspect_unsigned_integer_type, // ABDT_U8
     inspect_unsigned_integer_type, // ABDT_U16
     inspect_unsigned_integer_type, // ABDT_U32
     inspect_unsigned_integer_type, // ABDT_U64
